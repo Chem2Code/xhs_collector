@@ -79,9 +79,30 @@ npm install
 ![image](https://github.com/user-attachments/assets/5e62bc35-d758-463e-817c-7dcaacbee13c)
 
 ### 🚀运行项目
-```
+
+#### Command-Line Interface:
+To run the original command-line scraper:
+```bash
 python main.py
 ```
+Follow the instructions in `main.py` for example usage.
+
+#### Web User Interface (New):
+A Flask-based web UI is also available to interact with the scraper.
+To run the web UI:
+```bash
+python app.py
+```
+Then open your web browser and go to `http://127.0.0.1:5001` (or `http://<your-server-ip>:5001` if running on a remote server).
+
+**Web UI Features:**
+-   **Cookie Management:** Easily set and update your Xiaohongshu cookies through the UI.
+-   **Fetch Single Note:** Scrape data for a single Xiaohongshu note URL.
+-   **Fetch User Notes:** Scrape all notes for a given Xiaohongshu user profile URL.
+-   **Search Notes:** Perform searches by keyword, specify the number of notes, sort order, and note type.
+-   **Save Options:** Choose to save media (images/videos), Excel data, or both for each operation.
+-   **Activity Log:** View a log of actions performed through the UI.
+-   **Download Management:** Download generated Excel files directly from the UI.
 
 ### 🗝️注意事项
 - main.py中的代码是爬虫的入口，可以根据自己的需求进行修改

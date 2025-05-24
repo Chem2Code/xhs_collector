@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xiaohongshu Scraper UI</title>
+    <style>
+        body { font-family: sans-serif; margin: 0; padding:0; background-color: #f8f9fa; color: #333; display: flex; min-height: 100vh; }
+        .sidebar { width: 250px; background-color: #343a40; color: white; padding: 20px; position: fixed; height: 100%; overflow-y: auto;}
+        .sidebar h2 { color: #fff; border-bottom: 1px solid #495057; padding-bottom: 10px;}
+        .sidebar ul { list-style: none; padding: 0; }
+        .sidebar ul li a { color: #adb5bd; text-decoration: none; display: block; padding: 10px 15px; border-radius: 4px; margin-bottom: 5px; }
+        .sidebar ul li a:hover, .sidebar ul li a.active { background-color: #495057; color: #fff; }
+        .container { margin-left: 270px; padding: 20px; width: calc(100% - 270px); background-color: #fff; border-radius: 8px; box-shadow: 0 0 15px rgba(0,0,0,0.05); margin-top: 20px; margin-bottom:20px; }
+        h1 { color: #c92942; text-align: center; margin-bottom: 30px; } /* Xiaohongshu red */
+        h2 { color: #495057; margin-top:0; border-bottom: 2px solid #eee; padding-bottom:10px; }
+        label { display: block; margin-bottom: 8px; font-weight: 600; color: #555; }
+        textarea, input[type="text"], input[type="url"], input[type="number"], select {
+            width: calc(100% - 24px); padding: 12px; margin-bottom: 18px; border: 1px solid #ced4da; border-radius: 4px; box-sizing: border-box; font-size:14px;
+        }
+        button {
+            background-color: #c92942; color: white; padding: 12px 18px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; transition: background-color 0.3s ease;
+        }
+        button:hover { background-color: #a72236; }
+        .flash-messages { list-style: none; padding: 0; margin-bottom: 20px; }
+        .flash-messages li { padding: 12px 15px; margin-bottom: 12px; border-radius: 4px; font-size: 15px; }
+        .flash-messages .success { background-color: #d1e7dd; color: #0f5132; border: 1px solid #badbcc; }
+        .flash-messages .error { background-color: #f8d7da; color: #842029; border: 1px solid #f5c2c7; }
+        .section { margin-bottom: 35px; padding: 25px; background-color:#fdfdff; border: 1px solid #e9ecef; border-radius: 5px;}
+        .section:last-child { border-bottom: none; }
+        .results { margin-top: 25px; padding: 20px; background-color: #e9ecef; border-radius: 4px; border: 1px solid #dee2e6; }
+        .results h3 { margin-top:0; color: #333; }
+        pre { white-space: pre-wrap; word-wrap: break-word; background-color: #f8f9fa; padding: 15px; border: 1px solid #dee2e6; border-radius: 4px; font-size: 13px; max-height: 400px; overflow-y: auto; }
+        .form-row { display: flex; justify-content: space-between; gap: 20px; }
+        .form-row > div { flex: 1; }
+        .small-input { width: calc(50% - 12px); } /* For side-by-side inputs */
+        .hidden { display: none; }
+
+        /* Loading Overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.7);
+            z-index: 9999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.5em;
+            color: #333;
+        }
+        .loading-overlay.hidden {
+            display: none;
+        }
+    </style>
+    <script>
+        function showSection(sectionId) {
+            document.querySelectorAll('.content-section').forEach(section => {
+                section.classList.add('hidden');
+            });
+            document.getElementById(sectionId).classList.remove('hidden');
+
+            document.querySelectorAll('.sidebar ul li a').forEach(link => {
+                link.classList.remove('active');
+            });
+            document.querySelector(`.sidebar ul li a[href="#${sectionId}"]`).classList.add('active');
+        }
+        window.onload = function() {
+            // Show the first section by default or based on URL hash
+            const hash = window.location.hash.substring(1);
+            if (hash && document.getElementById(hash)) { // check if element exists
+                showSection(hash);
+            } else {
+                showSection('cookie-section');
+            }
+        };
+
+        function showLoadingOverlay() {
+            document.getElementById('loadingOverlay').classList.remove('hidden');
+        }
+
+        // Attach to scraper forms
+        document.addEventListener('DOMContentLoaded', function() {
+            const scraperForms = [
+                'single-note-section',
+                'user-notes-section',
+                'search-notes-section'
+            ];
+            scraperForms.forEach(sectionId => {
+                const section = document.getElementById(sectionId);
+                if (section) {
+                    const form = section.querySelector('form');
+                    if (form) {
+                        form.addEventListener('submit', function() {
+                            // Basic validation: check if cookies are set if not the cookie form
+                            const cookiesStr = document.getElementById('cookies_str') ? document.getElementById('cookies_str').value : '';
+                            if (!cookiesStr) {
+                                 // Check if current_cookies is available and not empty (rendered by Flask)
+                                const currentCookiesDisplay = document.querySelector('#cookie-section p[style*="color:green"]');
+                                if (!currentCookiesDisplay) { // If green message not there, cookies likely not set
+                                    // alert('Cookies are not set. Please set cookies first in the "Cookies" section.');
+                                    // No need to prevent submission here, Flask will handle it with a flash message.
+                                    // But good to show loading only if cookies are present.
+                                }
+                            }
+                            showLoadingOverlay();
+                        });
+                    }
+                }
+            });
+        });
+    </script>
+</head>
+<body>
+    <div class="sidebar">
+        <h2>Navigation</h2>
+        <ul>
+            <li><a href="#cookie-section" onclick="showSection('cookie-section'); return false;">Cookies</a></li>
+            <li><a href="#single-note-section" onclick="showSection('single-note-section'); return false;">Single Note</a></li>
+            <li><a href="#user-notes-section" onclick="showSection('user-notes-section'); return false;">User Notes</a></li>
+            <li><a href="#search-notes-section" onclick="showSection('search-notes-section'); return false;">Search Notes</a></li>
+            <li><a href="#activity-log-section" onclick="showSection('activity-log-section'); return false;">Activity Log</a></li>
+            <li><a href="#downloads-section" onclick="showSection('downloads-section'); return false;">Downloads</a></li>
+        </ul>
+    </div>
+
+    <div class="container">
+        <h1>Xiaohongshu Scraper UI</h1>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <ul class="flash-messages">
+            {% for category, message in messages %}
+              <li class="{{ category }}">{{ message }}</li>
+            {% endfor %}
+            </ul>
+          {% endif %}
+        {% endwith %}
+
+        <div id="cookie-section" class="section content-section">
+            <h2>1. Set Xiaohongshu Cookies</h2>
+            <form method="POST" action="{{ url_for('index_post') }}"> <!-- Changed action -->
+                <input type="hidden" name="form_type" value="cookie">
+                <label for="cookies_str">Cookie String:</label>
+                <textarea id="cookies_str" name="cookies_str" rows="4" placeholder="Enter your Xiaohongshu cookie string here (must include 'a1')">{{ current_cookies }}</textarea>
+                <button type="submit">Save Cookies</button>
+            </form>
+            {% if current_cookies %}
+                <p style="color:green; margin-top:10px;">Cookies are currently set. You can update them above.</p>
+            {% else %}
+                <p style="color:red; margin-top:10px;">Cookies are not set. Please provide them above to use the scraper.</p>
+            {% endif %}
+        </div>
+
+        <div id="single-note-section" class="section content-section hidden">
+            <h2>2. Fetch Single Note</h2>
+            <form method="POST" action="{{ url_for('index_post') }}"> <!-- Changed action -->
+                <input type="hidden" name="form_type" value="single_note">
+                <label for="note_url">Note URL:</label>
+                <input type="url" id="note_url" name="note_url" placeholder="e.g., https://www.xiaohongshu.com/explore/xxxxxxxx" required>
+                
+                <label for="single_save_choice">Save Choice:</label>
+                <select id="single_save_choice" name="save_choice">
+                    <option value="all">All (Media & Excel)</option>
+                    <option value="media">Media Only</option>
+                    <option value="excel">Excel Only</option>
+                </select>
+                
+                <label for="single_excel_name">Excel Name (if saving excel):</label>
+                <input type="text" id="single_excel_name" name="excel_name" placeholder="Defaults to note ID if empty">
+
+                <button type="submit">Fetch Note</button>
+            </form>
+            <div class="results" id="single-note-results">
+                {% if session.get('single_note_result') %}
+                    <h3>Last Result (Single Note):</h3>
+                    <p><small><em>Full details are saved to Excel/media files as per your 'Save Choice'. The display below is a summary/raw output.</em></small></p>
+                    <pre>{{ session.get('single_note_result') | tojson(indent=2) }}</pre>
+                {% else %}
+                    <p>No results for single note yet. Perform an action above.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div id="user-notes-section" class="section content-section hidden">
+            <h2>3. Fetch User's All Notes</h2>
+            <form method="POST" action="{{ url_for('index_post') }}"> <!-- Changed action -->
+                <input type="hidden" name="form_type" value="user_notes">
+                <label for="user_url">User Profile URL:</label>
+                <input type="url" id="user_url" name="user_url" placeholder="e.g., https://www.xiaohongshu.com/user/profile/xxxxxxxx" required>
+
+                <label for="user_save_choice">Save Choice:</label>
+                <select id="user_save_choice" name="save_choice">
+                    <option value="all">All (Media & Excel)</option>
+                    <option value="media">Media Only</option>
+                    <option value="excel">Excel Only</option>
+                </select>
+                <!-- Excel name for user notes usually defaults to user ID, can be made explicit if needed -->
+                <button type="submit">Fetch User Notes</button>
+            </form>
+            <div class="results" id="user-notes-results">
+                {% if session.get('user_notes_result') %}
+                    <h3>Last Result (User Notes):</h3>
+                    <p><small><em>Full details are saved to Excel/media files as per your 'Save Choice'. The display below is a summary/raw output.</em></small></p>
+                    <pre>{{ session.get('user_notes_result') | tojson(indent=2) }}</pre>
+                {% else %}
+                    <p>No results for user notes yet. Perform an action above.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div id="search-notes-section" class="section content-section hidden">
+            <h2>4. Search Notes</h2>
+            <form method="POST" action="{{ url_for('index_post') }}"> <!-- Changed action -->
+                <input type="hidden" name="form_type" value="search_notes">
+                <label for="query">Search Query:</label>
+                <input type="text" id="query" name="query" placeholder="e.g., travel, recipe" required>
+                
+                <div class="form-row">
+                    <div>
+                        <label for="require_num">Number of Notes:</label>
+                        <input type="number" id="require_num" name="require_num" value="10" min="1" required>
+                    </div>
+                    <div>
+                        <label for="sort">Sort By:</label>
+                        <select id="sort" name="sort">
+                            <option value="general">General (综合)</option>
+                            <option value="time_descending">Time Descending (时间)</option>
+                            <option value="popularity_descending">Popularity Descending (热度)</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div>
+                        <label for="note_type">Note Type:</label>
+                        <select id="note_type" name="note_type">
+                            <option value="0">All (全部)</option>
+                            <option value="1">Video (视频)</option>
+                            <option value="2">Image/Text (图文)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="search_save_choice">Save Choice:</label>
+                        <select id="search_save_choice" name="save_choice">
+                            <option value="all">All (Media & Excel)</option>
+                            <option value="media">Media Only</option>
+                            <option value="excel">Excel Only</option>
+                        </select>
+                    </div>
+                </div>
+                <!-- Excel name for search notes usually defaults to query, can be made explicit if needed -->
+                <button type="submit">Search Notes</button>
+            </form>
+            <div class="results" id="search-notes-results">
+                {% if session.get('search_notes_result') %}
+                    <h3>Last Result (Search Notes):</h3>
+                    <p><small><em>Full details are saved to Excel/media files as per your 'Save Choice'. The display below is a summary/raw output.</em></small></p>
+                    <pre>{{ session.get('search_notes_result') | tojson(indent=2) }}</pre>
+                {% else %}
+                    <p>No results for search notes yet. Perform an action above.</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div id="activity-log-section" class="section content-section hidden">
+            <h2>Activity Log</h2>
+            <pre id="activity-log-content">
+                {% if session.get('activity_log') %}
+                    {{ session.get('activity_log') }}
+                {% else %}
+                    No activity yet.
+                {% endif %}
+            </pre>
+        </div>
+
+        <div id="downloads-section" class="section content-section hidden">
+            <h2>Downloads</h2>
+            <p>Links to downloaded Excel files and previews of media will appear here.</p>
+            <!-- This section will be populated by Flask listing files from datas/excel_datas and datas/media_datas -->
+             <div id="excel-files">
+                <h3>Excel Files:</h3>
+                <ul>
+                    {% for file in session.get('excel_files', []) %}
+                        <li><a href="{{ url_for('download_file', type='excel', filename=file) }}">{{ file }}</a></li>
+                    {% else %}
+                        <li>No Excel files found yet.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <div id="media-folders">
+                <h3>Media Folders:</h3>
+                <p>Media files are saved in subdirectories under <code>datas/media_datas</code>. Due to the large number of potential files, direct links are not provided here. Please browse the directory on the server.</p>
+                <!-- Could list top-level folders if desired -->
+            </div>
+        </div>
+
+    </div>
+
+    <div class="loading-overlay hidden" id="loadingOverlay">
+        <div>Loading, please wait...</div>
+    </div>
+</body>
+</html>
