@@ -66,10 +66,11 @@
 - Node.js 18+
 
 ### 🎯安装依赖
-```
+```bash
 pip install -r requirements.txt
-npm install
+npm install 
 ```
+**Note:** `npm install` is crucial as it installs Node.js dependencies required by the JavaScript execution environment (e.g., for API signature generation). This includes modules like `jsdom`. Ensure Node.js (18+) is installed first.
 
 ### 🎨配置文件
 配置文件在项目根目录.env文件中，将下图自己的登录cookie放入其中，cookie获取➡️在浏览器f12打开控制台，点击网络，点击fetch，找一个接口点开
@@ -108,6 +109,11 @@ Then open your web browser and go to `http://127.0.0.1:5001` (or `http://<your-s
 - main.py中的代码是爬虫的入口，可以根据自己的需求进行修改
 - apis/pc_apis.py中的代码包含了所有的api接口，可以根据自己的需求进行修改
 
+## 🔧 Troubleshooting
+
+### Error: `Cannot find module 'jsdom'`
+This error means a required Node.js module for JavaScript execution is missing.
+- **Solution:** Ensure you have run `npm install` in the root directory of the project. If you have already run it, try deleting the `node_modules` folder and running `npm install` again. Make sure Node.js version 18+ is installed and accessible in your path.
 
 ## 🍥日志
    
